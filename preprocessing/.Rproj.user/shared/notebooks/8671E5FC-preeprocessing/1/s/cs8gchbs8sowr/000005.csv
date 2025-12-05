@@ -1,0 +1,6 @@
+"0","sout3 <-which((df[,3]<lsout3)|(df[,3]>usout3));length(sout3) #23 sout
+"
+"1","[1]"
+"1"," 0"
+"1","
+"

@@ -1,0 +1,7 @@
+"0","# Variable contributions"
+"0","fviz_pca_var(pca,"
+"0","             col.var = ""contrib"","
+"0","             gradient.cols = c(""lightblue"", ""steelblue"", ""darkblue""),"
+"0","             repel = TRUE) +"
+"0","  theme_minimal() +"
+"0","  labs(title = ""PCA - Variable contributions"")"

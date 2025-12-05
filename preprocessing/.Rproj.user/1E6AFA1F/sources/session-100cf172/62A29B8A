@@ -1,0 +1,26 @@
+{
+    "id": "62A29B8A",
+    "path": "~/MDS/Q3/AML/AML-Project1/preprocessing/preprocessing.Rmd",
+    "project_path": null,
+    "type": "r_markdown",
+    "hash": "0",
+    "contents": "",
+    "dirty": true,
+    "created": 1764929998492.0,
+    "source_on_save": false,
+    "relative_order": 2,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "530,24",
+        "scrollLine": "511"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1762947630,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1764938127225,
+    "read_only": false,
+    "read_only_alternatives": []
+}
