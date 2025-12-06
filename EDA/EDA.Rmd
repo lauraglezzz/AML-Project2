@@ -1,0 +1,230 @@
+---
+title: "Preprocessing"
+author: "Eva Martin and LauraGonzalez"
+date: "2025-12-05"
+output: html_document
+---
+#Libraries
+```{r}
+library(car)
+library(dplyr)
+library(FactoMineR)
+library(factoextra)
+```
+
+#Exploratory analysis
+Assign correct datatype to each variable
+No missing values, so no imputation method is required
+```{r}
+df <- read.csv("../data/phoneme.csv", header = TRUE)
+df_no_dupl <- distinct(df) #there are no duplicates in our dataset 
+rm(df_no_dupl)
+
+df$id <- NULL                                  # delete id column
+df$Class <- factor(df$Class, levels = c(1,2), labels = c("nasal","oral"))
+prop.table(table(df$Class)) * 100              # % for each category
+summary(df)
+```
+#Variables. From the dataset source:
+1 - V1
+491 outliers on both the upper and lower side, 23 of them which are severe
+
+```{r}
+summary(df[,1])
+
+hist(df$V1, breaks = 40, freq = F);curve(dnorm(x, mean(df$V1), sd(df$V1)), add = T)
+
+Boxplot(df$V1)
+length(Boxplot(df$V1, id=list(n=Inf)))
+
+varsumm1<-summary (df[,1])
+iqr1 <- varsumm1[5]-varsumm1[2]
+
+umout1 <- varsumm1[5]+1.5*iqr1; umout1
+usout1 <- varsumm1[5]+3*iqr1; usout1
+
+lmout1 <- varsumm1[2]-1.5*iqr1; lmout1
+lsout1 <- varsumm1[2]-3*iqr1; lsout1
+
+mout1<- which((df[,1]<lmout1)|(df[,1]>umout1));length(mout1) #491 mout
+sout1 <-which((df[,1]<lsout1)|(df[,1]>usout1));length(sout1) #23 sout
+```
+2 - V2
+4 outliers on both the upper and lower side, none of them are severe
+
+```{r}
+summary(df[,2])
+
+hist(df$V2, breaks = 40, freq = F);curve(dnorm(x, mean(df$V2), sd(df$V2)), add = T)
+
+Boxplot(df$V2)
+length(Boxplot(df$V2, id=list(n=Inf)))
+
+varsumm2<-summary (df[,2])
+iqr2 <- varsumm2[5]-varsumm2[2]
+
+umout2 <- varsumm2[5]+1.5*iqr2; umout2
+usout2 <- varsumm2[5]+3*iqr2; usout2
+
+lmout2 <- varsumm2[2]-1.5*iqr2; lmout2
+lsout2 <- varsumm2[2]-3*iqr2; lsout2
+
+mout2<- which((df[,2]<lmout2)|(df[,2]>umout2));length(mout2) #491 mout
+sout2 <-which((df[,2]<lsout2)|(df[,2]>usout2));length(sout2) #23 sout
+```
+3 - V3
+there are no outliers
+
+```{r}
+summary(df[,3])
+
+hist(df$V3, breaks = 40, freq = F);curve(dnorm(x, mean(df$V3), sd(df$V3)), add = T)
+
+Boxplot(df$V3)
+length(Boxplot(df$V3, id=list(n=Inf)))
+
+varsumm3<-summary (df[,3])
+iqr3 <- varsumm3[5]-varsumm3[2]
+
+umout3 <- varsumm3[5]+1.5*iqr3; umout3
+usout3 <- varsumm3[5]+3*iqr3; usout3
+
+lmout3 <- varsumm3[2]-1.5*iqr3; lmout3
+lsout3 <- varsumm3[2]-3*iqr3; lsout3
+
+mout3<- which((df[,3]<lmout3)|(df[,3]>umout3));length(mout3) #491 mout
+sout3 <-which((df[,3]<lsout3)|(df[,3]>usout3));length(sout3) #23 sout
+```
+
+
+4 - V4
+4 outliers on the upper side, none of them are severe
+
+```{r}
+summary(df[,4])
+
+hist(df$V4, breaks = 40, freq = F);curve(dnorm(x, mean(df$V4), sd(df$V4)), add = T)
+
+Boxplot(df$V4)
+length(Boxplot(df$V4, id=list(n=Inf)))
+
+varsumm4<-summary (df[,4])
+iqr4 <- varsumm4[5]-varsumm4[2]
+
+umout4 <- varsumm4[5]+1.5*iqr4; umout4
+usout4 <- varsumm4[5]+3*iqr4; usout4
+
+lmout4 <- varsumm4[2]-1.5*iqr4; lmout4
+lsout4 <- varsumm4[2]-3*iqr4; lsout4
+
+mout4 <- which((df[,4]<lmout4)|(df[,4]>umout4));length(mout4) #491 mout
+sout4 <-which((df[,4]<lsout4)|(df[,4]>usout4));length(sout4) #23 sout
+```
+
+
+
+5 - V5
+730 outliers both on the upper and lower side, which 188 out of them are severe
+
+```{r}
+summary(df[,5])
+
+hist(df$V5, breaks = 40, freq = F);curve(dnorm(x, mean(df$V5), sd(df$V5)), add = T)
+
+Boxplot(df$V5)
+length(Boxplot(df$V5, id=list(n=Inf)))
+
+varsumm5<-summary (df[,5])
+iqr5 <- varsumm5[5]-varsumm5[2]
+
+umout5 <- varsumm5[5]+1.5*iqr5; umout5
+usout5 <- varsumm5[5]+3*iqr5; usout5
+
+lmout5 <- varsumm5[2]-1.5*iqr5; lmout5
+lsout5 <- varsumm5[2]-3*iqr5; lsout5
+
+mout5 <- which((df[,5]<lmout5)|(df[,5]>umout5));length(mout5) #491 mout
+sout5 <-which((df[,5]<lsout5)|(df[,5]>usout5));length(sout5) #23 sout
+```
+
+6- Class
+
+```{r}
+summary(df[,6])
+str(df$Class)
+barplot(table(df$Class), col=c("steelblue","tomato"))
+
+```
+
+Check if the numerical features are correlated somehow
+```{r}
+library(corrplot)
+
+
+num_vars <- c("V1", "V2", "V3", "V4", "V5")
+
+cor_matrix <- cor(df[, num_vars], use = "complete.obs")
+
+par(mar = c(1, 1, 3, 2)) 
+
+corrplot(
+  cor_matrix, 
+  method = "color",
+  tl.cex = 0.9,             
+  tl.col = "black",         
+  title = "Correlation matrix of numerical variables",
+  mar = c(0, 0, 2, 0),      
+  addgrid.col = "grey90",   
+  cl.pos = "r"             
+)
+
+
+```
+
+
+
+
+Skewness and kurtosis
+```{r}
+library(e1071)
+skewness_values  <- sapply(df[,1:5], skewness)
+kurtosis_values <- sapply(df[,1:5], kurtosis)
+
+skewness_values
+kurtosis_values
+```
+
+
+```{r}
+sapply(df[,1:5], range)
+```
+Exploratory PCA
+```{r}
+# Select only numerical features (V1 to V5)
+X_pca <- df[, 1:5]
+
+# PCA with centering and scaling
+pca <- prcomp(X_pca, center = TRUE, scale. = TRUE)
+
+# Explained variance
+summary(pca)
+
+# Scree plot
+fviz_eig(pca, addlabels = TRUE, barfill = "steelblue", barcolor = "steelblue") +
+  theme_minimal() +
+  labs(title = "Explained variance by principal components")
+
+# Variable contributions
+fviz_pca_var(pca,
+             col.var = "contrib",
+             gradient.cols = c("lightblue", "steelblue", "darkblue"),
+             repel = TRUE) +
+  theme_minimal() +
+  labs(title = "PCA - Variable contributions")
+```
+#Data preprocessing in python - export CSV
+```{r}
+write.csv(df, "../data/phoneme_python.csv", row.names = FALSE)
+
+```
+
