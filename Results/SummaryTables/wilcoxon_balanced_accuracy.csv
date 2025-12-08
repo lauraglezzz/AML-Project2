@@ -1,0 +1,7 @@
+method1,method2,stat,pvalue
+fda,kfda,0.0,0.0625
+fda,kpca,0.0,0.0625
+fda,pca,5.0,0.625
+kfda,kpca,4.0,0.4375
+kfda,pca,1.0,0.125
+kpca,pca,0.0,0.0625

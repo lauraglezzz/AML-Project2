@@ -9,7 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from Preprocessing.preprocess import load_phoneme_data, prepare_fold_data
 from Models.dimensionality import run_pca, run_fda, run_kpca_tuned, run_kfda
-from Models.models_svm import svm_rbf_tuned, svm_linear_tuned, svm_poly_tuned
+from Models.models_svm import svm_rbf_tuned
 
 
 # ===============================================================
@@ -18,7 +18,6 @@ from Models.models_svm import svm_rbf_tuned, svm_linear_tuned, svm_poly_tuned
 
 RESULTS_DIR = "../Results"
 os.makedirs(RESULTS_DIR, exist_ok=True)
-
 
 
 # ===============================================================
@@ -36,12 +35,7 @@ print("\n=== Starting Nested CV (preprocessing + dimensionality reduction + SVM)
 K = 5
 kf = KFold(n_splits=K, shuffle=True, random_state=42)
 
-summary_records = {
-    "pca": [],
-    "fda": [],
-    "kpca": [],
-    "kfda": []
-}
+summary_records = {"pca": [], "fda": [], "kpca": [], "kfda": []}
 
 
 # ===============================================================
@@ -64,32 +58,44 @@ for fold_idx, (train_idx, test_idx) in enumerate(kf.split(df), start=1):
 
 
     # ======================================================
-    # PCA → SVM
+    # =============== PCA → SVM ============================
     # ======================================================
+
     Xtr_pca, Xte_pca, _ = run_pca(Xtrain, Xtest, n_components=2)
 
     pca_folder = os.path.join(fold_folder, "PCA")
+    os.makedirs(pca_folder, exist_ok=True)
+
     res_pca = svm_rbf_tuned(Xtr_pca, ytrain, Xte_pca, ytest,
                             save_folder=pca_folder)
+
+    # SAVE 2D TEST PROJECTION
+    res_pca["X_test_proj"] = Xte_pca.tolist()
 
     summary_records["pca"].append(res_pca)
 
 
     # ======================================================
-    # FDA → SVM
+    # =============== FDA → SVM ============================
     # ======================================================
-    Xtr_fda, Xte_fda, _ = run_fda(Xtrain, ytrain, Xtest)
+
+    Xtr_fda, Xte_fda, _ = run_fda(Xtrain, ytrain, Xtest, n_components=2)
 
     fda_folder = os.path.join(fold_folder, "FDA")
+    os.makedirs(fda_folder, exist_ok=True)
+
     res_fda = svm_rbf_tuned(Xtr_fda, ytrain, Xte_fda, ytest,
                             save_folder=fda_folder)
+
+    res_fda["X_test_proj"] = Xte_fda.tolist()
 
     summary_records["fda"].append(res_fda)
 
 
     # ======================================================
-    # kPCA (tuned) → SVM
+    # ========== Tuned kPCA → SVM ==========================
     # ======================================================
+
     Xtr_kpca, Xte_kpca, kpca_model, best_gamma, score = run_kpca_tuned(
         Xtrain, ytrain, Xtest,
         gamma_grid=[0.001, 0.01, 0.1, 1, 10],
@@ -99,21 +105,30 @@ for fold_idx, (train_idx, test_idx) in enumerate(kf.split(df), start=1):
     print(f"Best gamma (kPCA tuned): {best_gamma}   Score={score:.3f}")
 
     kpca_folder = os.path.join(fold_folder, "KPCA")
+    os.makedirs(kpca_folder, exist_ok=True)
+
     res_kpca = svm_rbf_tuned(Xtr_kpca, ytrain, Xte_kpca, ytest,
                              save_folder=kpca_folder)
 
     res_kpca["best_gamma"] = best_gamma
+    res_kpca["X_test_proj"] = Xte_kpca.tolist()
+
     summary_records["kpca"].append(res_kpca)
 
 
     # ======================================================
-    # kFDA → SVM
+    # ============== kFDA → SVM =============================
     # ======================================================
-    Xtr_kfda, Xte_kfda, _ = run_kfda(Xtrain, ytrain, Xtest)
+
+    Xtr_kfda, Xte_kfda, _ = run_kfda(Xtrain, ytrain, Xtest, n_components=2)
 
     kfda_folder = os.path.join(fold_folder, "KFDA")
+    os.makedirs(kfda_folder, exist_ok=True)
+
     res_kfda = svm_rbf_tuned(Xtr_kfda, ytrain, Xte_kfda, ytest,
                              save_folder=kfda_folder)
+
+    res_kfda["X_test_proj"] = Xte_kfda.tolist()
 
     summary_records["kfda"].append(res_kfda)
 

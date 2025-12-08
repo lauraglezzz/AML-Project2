@@ -118,23 +118,30 @@ def run_kpca_tuned(X_train, y_train, X_test,
 # 4. Kernel FDA (stable version)
 # ============================================================
 
-def run_kfda(X_train, y_train, X_test, gamma=1.0, n_components=3):
-    Xtr = np.asarray(X_train)
-    Xte = np.asarray(X_test)
+def run_kfda(X_train, y_train, X_test, kernel="rbf", gamma=1.0, n_components=2):
+    """
+    kFDA = KPCA + FDA in feature space.
+    Force FDA output to be exactly 2D for visualisation.
+    """
+
+    Xtr = X_train.values if hasattr(X_train, "values") else np.asarray(X_train)
+    Xte = X_test.values if hasattr(X_test, "values") else np.asarray(X_test)
     ytr = np.asarray(y_train)
 
-    # KPCA mapping (more components improves FDA stability)
+    # Step 1: Kernel PCA mapping (feature space)
     kpca = KernelPCA(
-        kernel="rbf",
+        kernel=kernel,
         gamma=gamma,
         n_components=n_components,
-        remove_zero_eig=True
+        random_state=0
     )
 
-    Xtr_k = np.real(kpca.fit_transform(Xtr))
-    Xte_k = np.real(kpca.transform(Xte))
+    Xtr_k = kpca.fit_transform(Xtr)
+    Xte_k = kpca.transform(Xte)
 
-    # FDA in mapped space
-    Xtr_fda, Xte_fda, W = run_fda(Xtr_k, ytr, Xte_k, n_components=1)
+    # Step 2: FDA in this space → force 2D output ALWAYS
+    Xtr_fda, Xte_fda, W = run_fda(Xtr_k, ytr, Xte_k, n_components=2)
 
-    return Xtr_fda, Xte_fda, {"kpca": kpca, "W": W}
+    model = {"kpca": kpca, "W": W}
+    return Xtr_fda, Xte_fda, model
+
