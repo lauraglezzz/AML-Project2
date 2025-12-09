@@ -1,4 +1,3 @@
-# Models/models_svm.py
 import os
 import json
 import time
@@ -7,7 +6,7 @@ from typing import Dict, Any
 import joblib
 import numpy as np
 from sklearn.svm import SVC
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.metrics import (
     accuracy_score,
     balanced_accuracy_score,
@@ -17,6 +16,7 @@ from sklearn.metrics import (
     roc_auc_score,
     average_precision_score
 )
+from scipy.stats import loguniform   # distributions for RandomizedSearchCV
 
 
 # ============================================================
@@ -73,39 +73,24 @@ def evaluate_metrics(y_true, y_pred, y_prob=None):
 
 
 # ============================================================
-# Generic SVM grid search wrapper
+# Generic SVM search wrapper (works for grid and random)
 # ============================================================
 
-def run_grid_svm(X_train, y_train, X_test, y_test,
-                 param_grid: dict,
-                 svc_ctor,
-                 model_name: str,
-                 cv_inner: int = 3,
-                 scoring: str = "balanced_accuracy",
-                 save_folder: str = None) -> Dict[str, Any]:
+def run_search_svm(X_train, y_train, X_test, y_test,
+                   search_obj,
+                   model_name: str,
+                   save_folder: str = None) -> Dict[str, Any]:
 
     if save_folder is not None:
         os.makedirs(save_folder, exist_ok=True)
 
-    estimator = svc_ctor()
-
-    gs = GridSearchCV(
-        estimator=estimator,
-        param_grid=param_grid,
-        scoring=scoring,
-        cv=cv_inner,
-        n_jobs=-1,
-        verbose=1,
-        refit=True
-    )
-
     start = time.time()
-    gs.fit(X_train, y_train)
+    search_obj.fit(X_train, y_train)
     elapsed = time.time() - start
 
-    best = gs.best_estimator_
-    best_params = gs.best_params_
-    best_cv_score = gs.best_score_
+    best = search_obj.best_estimator_
+    best_params = search_obj.best_params_
+    best_cv_score = search_obj.best_score_
 
     y_pred = best.predict(X_test)
 
@@ -119,7 +104,6 @@ def run_grid_svm(X_train, y_train, X_test, y_test,
     elif hasattr(best, "decision_function"):
         dec = best.decision_function(X_test)
         if dec.ndim == 1:
-            # min-max normalisation as fallback
             y_prob = (dec - dec.min()) / (dec.max() - dec.min() + 1e-12)
         else:
             y_prob = dec
@@ -143,7 +127,7 @@ def run_grid_svm(X_train, y_train, X_test, y_test,
             json.dump(result, f, indent=2)
 
         joblib.dump(best, os.path.join(save_folder, f"{model_name}_best_model.joblib"))
-        joblib.dump(gs, os.path.join(save_folder, f"{model_name}_gridsearch.joblib"))
+        joblib.dump(search_obj, os.path.join(save_folder, f"{model_name}_search.joblib"))
 
     return result
 
@@ -153,37 +137,70 @@ def run_grid_svm(X_train, y_train, X_test, y_test,
 # ============================================================
 
 def svm_linear_tuned(X_train, y_train, X_test, y_test, cv_inner=3, save_folder=None):
-    grid = {"C": [0.01, 0.1, 1, 10, 100, 1000]}
-    return run_grid_svm(X_train, y_train, X_test, y_test,
-                        param_grid=grid,
-                        svc_ctor=lambda: SVC(kernel="linear", probability=True),
-                        model_name="svm_linear",
-                        cv_inner=cv_inner,
-                        save_folder=save_folder)
+    param_grid = {"C": [0.01, 0.1, 1, 10, 100, 1000]}
+
+    search = GridSearchCV(
+        estimator=SVC(kernel="linear", probability=True),
+        param_grid=param_grid,
+        scoring="balanced_accuracy",
+        cv=cv_inner,
+        n_jobs=-1,
+        verbose=1,
+        refit=True
+    )
+
+    return run_search_svm(X_train, y_train, X_test, y_test,
+                          search_obj=search,
+                          model_name="svm_linear",
+                          save_folder=save_folder)
 
 
 def svm_rbf_tuned(X_train, y_train, X_test, y_test, cv_inner=3, save_folder=None):
-    grid = {
-        "C": [0.01, 0.1, 1, 10, 100, 1000],
-        "gamma": [0.0001, 0.001, 0.01, 0.1, 1, 10]
+
+    param_dist = {
+        "C": loguniform(1e-2, 1e3),
+        "gamma": loguniform(1e-4, 1e1)
     }
-    return run_grid_svm(X_train, y_train, X_test, y_test,
-                        param_grid=grid,
-                        svc_ctor=lambda: SVC(kernel="rbf", probability=True),
-                        model_name="svm_rbf",
-                        cv_inner=cv_inner,
-                        save_folder=save_folder)
+
+    search = RandomizedSearchCV(
+        estimator=SVC(kernel="rbf", probability=True),
+        param_distributions=param_dist,
+        n_iter=20,                 # Much faster than full grid
+        scoring="balanced_accuracy",
+        cv=cv_inner,
+        n_jobs=-1,
+        verbose=1,
+        refit=True,
+        random_state=42
+    )
+
+    return run_search_svm(X_train, y_train, X_test, y_test,
+                          search_obj=search,
+                          model_name="svm_rbf",
+                          save_folder=save_folder)
 
 
 def svm_poly_tuned(X_train, y_train, X_test, y_test, cv_inner=3, save_folder=None):
-    grid = {
-        "C": [0.1, 1, 10, 100],
+
+    param_dist = {
+        "C": loguniform(1e-1, 1e2),
+        "degree": [2, 3, 4, 5],
         "gamma": ["scale", "auto"],
-        "degree": [2, 3, 4, 5]
     }
-    return run_grid_svm(X_train, y_train, X_test, y_test,
-                        param_grid=grid,
-                        svc_ctor=lambda: SVC(kernel="poly", probability=True),
-                        model_name="svm_poly",
-                        cv_inner=cv_inner,
-                        save_folder=save_folder)
+
+    search = RandomizedSearchCV(
+        estimator=SVC(kernel="poly", probability=True),
+        param_distributions=param_dist,
+        n_iter=15,     # huge speedup compared to full grid
+        scoring="balanced_accuracy",
+        cv=cv_inner,
+        n_jobs=-1,
+        verbose=1,
+        refit=True,
+        random_state=42
+    )
+
+    return run_search_svm(X_train, y_train, X_test, y_test,
+                          search_obj=search,
+                          model_name="svm_poly",
+                          save_folder=save_folder)
